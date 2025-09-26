@@ -1,0 +1,72 @@
+name: Build typst
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: The branch, tag or SHA in https://github.com/typst/typst.
+        default: main
+        type: string
+
+# The following lines are based on `{release,ci}.yml` in typst/typst, licensed under Apache-2.0.
+# https://github.com/typst/typst/tree/586b049487bfe696eb765a51403e6215d7f91315/.github/workflows/
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            bits: 64
+            os: ubuntu-latest
+            cross: true
+            docs: true
+          - target: x86_64-pc-windows-msvc
+            bits: 64
+            os: windows-latest
+            cross: false
+            docs: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: typst/typst
+          ref: ${{ github.event.inputs.ref }}
+
+      - uses: dtolnay/rust-toolchain@1.89.0
+        with:
+          target: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.bits }}
+
+      - name: Build typst using cross
+        if: ${{ matrix.cross }}
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall cross --force  # Even if cached, reinstall to set PATH properly.
+          cross build -p typst-cli --release --target ${{ matrix.target }} --features self-update,vendor-openssl
+      - name: Build typst using cargo
+        if: ${{ !matrix.cross }}
+        run: cargo build -p typst-cli --release --target ${{ matrix.target }} --features self-update
+
+      - name: Prepare to upload
+        shell: bash
+        run: |
+          directory=typst-${{ matrix.target }}
+          mkdir $directory
+          cp README.md LICENSE NOTICE $directory
+          if [ -f target/${{ matrix.target }}/release/typst.exe ]; then
+            cp target/${{ matrix.target }}/release/typst.exe $directory
+            7z a -r $directory.zip $directory
+          else
+            cp target/${{ matrix.target }}/release/typst $directory
+            tar cJf $directory.tar.xz $directory
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: typst-${{ matrix.target }}
+          path: "typst-${{ matrix.target }}.*"

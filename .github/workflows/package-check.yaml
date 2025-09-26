@@ -1,0 +1,83 @@
+name: Build typst-package-check
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: The branch, tag or SHA in https://github.com/typst/package-check.
+        default: main
+        type: string
+
+# The following lines are based on GitHub docs, because typst/package-check uses nix and docker.
+# https://docs.github.com/en/actions/tutorials/build-and-test-code/rust
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            cargo: cross
+          - target: x86_64-pc-windows-msvc
+            cargo: cargo xwin
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: typst/package-check
+          ref: ${{ github.event.inputs.ref }}
+
+      - run: rustup target add ${{ matrix.target }}
+
+      - name: Setup cargo xwin
+        if: ${{ matrix.cargo == 'cargo xwin' }}
+        run: |
+          rustup component add llvm-tools
+          pip install cargo-xwin
+      - name: Setup cross
+        if: ${{ matrix.cargo == 'cross' }}
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall cross --force  # Even if cached, reinstall to set PATH properly.
+      - name: Vendor openssl for musl
+        if: ${{ endsWith(matrix.target, '-musl') }}
+        run: |
+            cat <<EOF >> Cargo.toml
+            openssl = { version = "^0.10", features = ["vendored"] }
+            EOF
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-typst-package-check-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.target }}-typst-package-check
+            ${{ runner.os }}-cargo-${{ matrix.target }}
+
+      - name: Build
+        run: |
+          ${{ matrix.cargo }} build --release --target ${{ matrix.target }}
+
+      - name: Prepare to upload
+        shell: bash
+        run: |
+          directory=typst-package-check-${{ matrix.target }}
+          mkdir $directory
+          cp README.md LICENSE* $directory
+          if [ -f target/${{ matrix.target }}/release/typst-package-check.exe ]; then
+            cp target/${{ matrix.target }}/release/typst-package-check.exe $directory
+            7z a -r $directory.zip $directory
+          else
+            cp target/${{ matrix.target }}/release/typst-package-check $directory
+            tar cJf $directory.tar.xz $directory
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: typst-package-check-${{ matrix.target }}
+          path: "typst-package-check-${{ matrix.target }}.*"

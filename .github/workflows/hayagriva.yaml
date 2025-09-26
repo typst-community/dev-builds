@@ -1,0 +1,77 @@
+name: Build hayagriva
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: The branch, tag or SHA in https://github.com/typst/hayagriva.
+        default: main
+        type: string
+
+# The following lines are based on GitHub docs, because typst/hayagriva does not build CLI.
+# https://docs.github.com/en/actions/tutorials/build-and-test-code/rust
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            cargo: cross
+          - target: x86_64-pc-windows-msvc
+            cargo: cargo xwin
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: typst/hayagriva
+          ref: ${{ github.event.inputs.ref }}
+
+      - run: rustup target add ${{ matrix.target }}
+
+      - name: Setup cargo xwin
+        if: ${{ matrix.cargo == 'cargo xwin' }}
+        run: |
+          pip install cargo-xwin
+      - name: Setup cross
+        if: ${{ matrix.cargo == 'cross' }}
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall cross --force  # Even if cached, reinstall to set PATH properly.
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-hayagriva-${{ hashFiles('Cargo.toml') }}
+          # typst/hayagriva does not provide Cargo.lock.
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.target }}-hayagriva
+            ${{ runner.os }}-cargo-${{ matrix.target }}
+
+      - name: Build
+        run: |
+          ${{ matrix.cargo }} build --features cli --release --target ${{ matrix.target }}
+
+      - name: Prepare to upload
+        shell: bash
+        run: |
+          directory=hayagriva-${{ matrix.target }}
+          mkdir $directory
+          cp README.md LICENSE* $directory
+          if [ -f target/${{ matrix.target }}/release/hayagriva.exe ]; then
+            cp target/${{ matrix.target }}/release/hayagriva.exe $directory
+            7z a -r $directory.zip $directory
+          else
+            cp target/${{ matrix.target }}/release/hayagriva $directory
+            tar cJf $directory.tar.xz $directory
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hayagriva-${{ matrix.target }}
+          path: "hayagriva-${{ matrix.target }}.*"
