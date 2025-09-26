@@ -31,6 +31,14 @@ jobs:
 
       - run: rustup target add ${{ matrix.target }}
 
+      - name: Cache cargo xwin
+        if: ${{ matrix.cargo == 'cargo xwin' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/cargo-xwin
+          key: |
+            ${{ runner.os }}-cargo-xwin-${{ matrix.target }}
       - name: Setup cargo xwin
         if: ${{ matrix.cargo == 'cargo xwin' }}
         run: |
