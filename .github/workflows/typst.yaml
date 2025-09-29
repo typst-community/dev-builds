@@ -44,6 +44,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: dev-builds
+      - uses: actions/setup-python@v6
+        if: ${{ matrix.os == 'windows-latest' }}
+        with:
+          # `get_revision.py` requires Python 3.11+,
+          # but as of 2025-09-29, windows-latest has Python 3.9.
+          python-version: '3.12'
       - name: Report the revision
         shell: bash
         id: report
