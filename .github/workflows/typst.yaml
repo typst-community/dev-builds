@@ -7,6 +7,10 @@ on:
         description: The branch, tag or SHA in https://github.com/typst/typst.
         default: main
         type: string
+      release:
+        description: Whether to publish artifacts in a new release.
+        default: false
+        type: boolean
 
 # The following lines are based on `{release,ci}.yml` in typst/typst, licensed under Apache-2.0.
 # https://github.com/typst/typst/tree/586b049487bfe696eb765a51403e6215d7f91315/.github/workflows/
@@ -15,6 +19,8 @@ jobs:
   build:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -34,6 +40,19 @@ jobs:
         with:
           repository: typst/typst
           ref: ${{ github.event.inputs.ref }}
+
+      - uses: actions/checkout@v4
+        with:
+          path: dev-builds
+      - name: Report the revision
+        shell: bash
+        id: report
+        run: |
+          set -euxo pipefail
+          revision=$(python dev-builds/scripts/get_revision.py)
+          echo "Revision: $revision"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "Revision: \`$revision\`." >> "$GITHUB_STEP_SUMMARY"
 
       - uses: dtolnay/rust-toolchain@1.89.0
         with:
@@ -55,6 +74,7 @@ jobs:
       - name: Prepare to upload
         shell: bash
         run: |
+          set -euxo pipefail
           directory=typst-${{ matrix.target }}
           mkdir $directory
           cp README.md LICENSE NOTICE $directory
@@ -70,3 +90,19 @@ jobs:
         with:
           name: typst-${{ matrix.target }}
           path: "typst-${{ matrix.target }}.*"
+
+      - uses: softprops/action-gh-release@v2
+        if: ${{ inputs.release }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.report.outputs.revision }}
+          name: ${{ steps.report.outputs.revision }}
+          draft: true
+          prerelease: false # can be edited in the Web UI
+          files: |
+            typst-${{ matrix.target }}.*
+      - name: Report the release
+        if: ${{ inputs.release }}
+        run: |
+          echo "Please publish the [draft release](https://github.com/typst-community/dev-builds/releases)." >> "$GITHUB_STEP_SUMMARY"

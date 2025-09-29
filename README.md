@@ -20,6 +20,7 @@ Unofficial builds of [Typst](https://typst.app/home) artifacts for development p
   Artifacts in [Releases](https://github.com/typst-community/dev-builds/releases/) are practically permanent, and are suitable for CI.
 
   Artifacts in [Actions](https://github.com/typst-community/dev-builds/actions) are retained for 90 days before they are [automatically deleted by GitHub](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization).
+  Besides, files downloaded from GitHub workflow webpages might be double-zipped. You can use [`gh run download --name ⟨asset-name⟩`](https://cli.github.com/manual/gh_run_download) instead.
 
 ## Additional explanation for `docs`
 
@@ -27,7 +28,6 @@ Unofficial builds of [Typst](https://typst.app/home) artifacts for development p
 
 You can build a docs website from these files yourself by leveraging [typst-docs-web](https://github.com/typst-community/typst-docs-web) and [other](https://ydx-2147483647.github.io/best-of-typst/#docs-infra) unofficial tools.
 The base URL for the files is set to `/DOCS-BASE/`. Please replace the string with your actual base URL. For example, [`sd '/DOCS-BASE/' '/' docs.json`](https://webinstall.dev/sd/).
-
 
 ## Debugging recipes
 
@@ -42,11 +42,10 @@ gh workflow run
 ```shell
 gh run download --name docs.json
 
-mkdir assets && cd assets
 gh run download --name docs-assets
-cd -
+unzip docs-assets.zip
+ls assets/
 ```
-
 
 ### `typst`
 

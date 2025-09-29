@@ -106,7 +106,6 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         if: ${{ inputs.release }}
-        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -119,4 +118,4 @@ jobs:
       - name: Report the release
         if: ${{ inputs.release }}
         run: |
-          echo "Please publish the [draft release](${{ steps.release.outputs.url }})." >> "$GITHUB_STEP_SUMMARY"
+          echo "Please publish the [draft release](https://github.com/typst-community/dev-builds/releases)." >> "$GITHUB_STEP_SUMMARY"

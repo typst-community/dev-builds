@@ -7,6 +7,10 @@ on:
         description: The branch, tag or SHA in https://github.com/typst/package-check.
         default: main
         type: string
+      release:
+        description: Whether to publish artifacts in a new release.
+        default: false
+        type: boolean
 
 # The following lines are based on GitHub docs, because typst/package-check uses nix and docker.
 # https://docs.github.com/en/actions/tutorials/build-and-test-code/rust
@@ -15,6 +19,8 @@ jobs:
   build:
     name: Build ${{ matrix.target }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -28,6 +34,19 @@ jobs:
         with:
           repository: typst/package-check
           ref: ${{ github.event.inputs.ref }}
+
+      - uses: actions/checkout@v4
+        with:
+          path: dev-builds
+      - name: Report the revision
+        shell: bash
+        id: report
+        run: |
+          set -euxo pipefail
+          revision=$(python dev-builds/scripts/get_revision.py)
+          echo "Revision: $revision"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "Revision: \`$revision\`." >> "$GITHUB_STEP_SUMMARY"
 
       - run: rustup target add ${{ matrix.target }}
 
@@ -74,6 +93,7 @@ jobs:
       - name: Prepare to upload
         shell: bash
         run: |
+          set -euxo pipefail
           directory=typst-package-check-${{ matrix.target }}
           mkdir $directory
           cp README.md LICENSE* $directory
@@ -89,3 +109,19 @@ jobs:
         with:
           name: typst-package-check-${{ matrix.target }}
           path: "typst-package-check-${{ matrix.target }}.*"
+
+      - uses: softprops/action-gh-release@v2
+        if: ${{ inputs.release }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.report.outputs.revision }}
+          name: ${{ steps.report.outputs.revision }}
+          draft: true
+          prerelease: false # can be edited in the Web UI
+          files: |
+            typst-package-check-${{ matrix.target }}.*
+      - name: Report the release
+        if: ${{ inputs.release }}
+        run: |
+          echo "Please publish the [draft release](https://github.com/typst-community/dev-builds/releases)." >> "$GITHUB_STEP_SUMMARY"

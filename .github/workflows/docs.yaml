@@ -13,6 +13,10 @@ on:
           Refer to typst-docs CLI for more info.
         default: /DOCS-BASE/
         type: string
+      release:
+        description: Whether to publish artifacts in a new release.
+        default: false
+        type: boolean
 
 # This workflow cannot share caches with typst.yaml, because x86_64-unknown-linux-gnu ≠ x86_64-unknown-linux-musl.
 
@@ -20,12 +24,27 @@ jobs:
   build:
     name: Build docs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
         with:
           repository: typst/typst
           ref: ${{ github.event.inputs.ref }}
+
+      - uses: actions/checkout@v4
+        with:
+          path: dev-builds
+      - name: Report the revision
+        shell: bash
+        id: report
+        run: |
+          set -euxo pipefail
+          revision=$(python dev-builds/scripts/get_revision.py)
+          echo "Revision: $revision"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "Revision: \`$revision\`." >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/cache@v4
         with:
@@ -42,6 +61,12 @@ jobs:
         run: |
           cargo run --package typst-docs --release -- --assets-dir assets/ --out-file docs.json --base "${{ github.event.inputs.docs_base }}"
 
+      - name: Prepare to upload
+        shell: bash
+        run: |
+          set -euxo pipefail
+          7z a docs-assets.zip assets/
+
       - name: Upload docs.json
         uses: actions/upload-artifact@v4
         with:
@@ -51,4 +76,21 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: docs-assets
-          path: assets/
+          path: docs-assets.zip
+
+      - uses: softprops/action-gh-release@v2
+        if: ${{ inputs.release }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.report.outputs.revision }}
+          name: ${{ steps.report.outputs.revision }}
+          draft: true
+          prerelease: false # can be edited in the Web UI
+          files: |
+            docs.json
+            docs-assets.zip
+      - name: Report the release
+        if: ${{ inputs.release }}
+        run: |
+          echo "Please publish the [draft release](https://github.com/typst-community/dev-builds/releases)." >> "$GITHUB_STEP_SUMMARY"
