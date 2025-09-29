@@ -7,6 +7,10 @@ on:
         description: The branch, tag or SHA in https://github.com/typst/hayagriva.
         default: main
         type: string
+      release:
+        description: Whether to publish artifacts in a new release.
+        default: false
+        type: boolean
 
 # The following lines are based on GitHub docs, because typst/hayagriva does not build CLI.
 # https://docs.github.com/en/actions/tutorials/build-and-test-code/rust
@@ -15,6 +19,8 @@ jobs:
   build:
     name: Build ${{ matrix.target }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
@@ -28,6 +34,19 @@ jobs:
         with:
           repository: typst/hayagriva
           ref: ${{ github.event.inputs.ref }}
+
+      - uses: actions/checkout@v4
+        with:
+          path: dev-builds
+      - name: Report the revision
+        shell: bash
+        id: report
+        run: |
+          set -euxo pipefail
+          revision=$(python dev-builds/scripts/get_revision.py)
+          echo "Revision: $revision"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "Revision: \`$revision\`." >> "$GITHUB_STEP_SUMMARY"
 
       - run: rustup target add ${{ matrix.target }}
 
@@ -68,6 +87,7 @@ jobs:
       - name: Prepare to upload
         shell: bash
         run: |
+          set -euxo pipefail
           directory=hayagriva-${{ matrix.target }}
           mkdir $directory
           cp README.md LICENSE* $directory
@@ -83,3 +103,20 @@ jobs:
         with:
           name: hayagriva-${{ matrix.target }}
           path: "hayagriva-${{ matrix.target }}.*"
+
+      - uses: softprops/action-gh-release@v2
+        if: ${{ inputs.release }}
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.report.outputs.revision }}
+          name: ${{ steps.report.outputs.revision }}
+          draft: true
+          prerelease: false # can be edited in the Web UI
+          files: |
+            hayagriva-${{ matrix.target }}.*
+      - name: Report the release
+        if: ${{ inputs.release }}
+        run: |
+          echo "Please publish the [draft release](${{ steps.release.outputs.url }})." >> "$GITHUB_STEP_SUMMARY"
