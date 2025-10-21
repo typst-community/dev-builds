@@ -1,0 +1,98 @@
+#set document(title: "Typst dev builds")
+
+#html.style(
+  ```css
+  body {
+    background-color: white;
+    color: black;
+
+    max-width: 40em;
+    margin: 0 auto;
+    padding-inline: 1em;
+
+    font-family: system-ui;
+  }
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-color: #282828;
+      color: white;
+    }
+  }
+
+  h1 {
+    margin-block: 2em;
+    text-align: center;
+  }
+
+  p {
+    line-height: 1.5;
+  }
+
+  li {
+    margin-block: 0.3em;
+  }
+
+  a {
+    color: #1464CC;
+    text-decoration: none;
+  }
+  a:visited {
+    color: #681da8;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  @media (prefers-color-scheme: dark) {
+    a {
+      color: #9fc1f9;
+    }
+    a:visited {
+      color: #c58af9;
+    }
+  }
+
+  code {
+    background: #e6e6e6;
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+  }
+  @media (prefers-color-scheme: dark) {
+    code {
+      background: #4a4a4a;
+    }
+  }
+  ```.text,
+)
+
+#title()
+
+Unofficial builds of #link("https://typst.app/home")[Typst] artifacts for development purposes.
+
+#outline()
+
+= Introduction
+#{
+  let full = read("/README.md")
+  let start = "<!-- included by catalog.typ — start -->"
+  let end = "<!-- included by catalog.typ — end -->"
+
+  let readme = full.slice(full.position(start) + start.len(), full.position(end))
+
+  import "@preview/cmarker:0.1.6": render
+  render(readme)
+}
+
+= Artifacts in GitHub Releases
+#{
+  let catalog = json("/dist/catalog.json")
+  assert.eq(catalog.version, "0.1.0")
+
+  for (name, releases) in catalog.artifacts {
+    [== #raw(name)]
+    list(
+      ..releases.map(r => list.item(
+        link(r.releaseUrl, r.revision),
+      )),
+    )
+  }
+}

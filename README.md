@@ -2,12 +2,16 @@
 
 Unofficial builds of [Typst](https://typst.app/home) artifacts for development purposes.
 
+<!-- included by catalog.typ — start -->
+
 - **Artifacts:**
 
   - `docs` [Documentation](https://typst.app/docs/) (see [below](#additional-explanation-for-docs) for explanation)
   - `typst` [Typst](https://typst.app/open-source/#download)
   - `package-check` [Typst package check](https://github.com/typst/package-check)
   - `hayagriva` [Hayagriva](https://github.com/typst/hayagriva)
+
+  A machine-readable sorted catalog of published artifacts is available at [`catalog.json`](https://typst-community.github.io/dev-builds/catalog.json).
 
 - **Platform:** Only x86_64 Linux (musl) and Windows binaries are offered for CLI programs.
 
@@ -28,6 +32,8 @@ Unofficial builds of [Typst](https://typst.app/home) artifacts for development p
 
 You can build a docs website from these files yourself by leveraging [typst-docs-web](https://github.com/typst-community/typst-docs-web) and [other](https://ydx-2147483647.github.io/best-of-typst/#docs-infra) unofficial tools.
 The base URL for the files is set to `/DOCS-BASE/`. Please replace the string with your actual base URL. For example, [`sd '/DOCS-BASE/' '/' docs.json`](https://webinstall.dev/sd/).
+
+<!-- included by catalog.typ — end -->
 
 ## Debugging recipes
 
