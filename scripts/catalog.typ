@@ -1,4 +1,9 @@
-#set document(title: "Typst dev builds")
+#set document(
+  title: "Typst dev builds",
+  description: [Unofficial builds of #link("https://typst.app/home")[Typst] artifacts for development purposes.],
+  author: "Typst Community",
+  keywords: ("typst", "hayagriva", "typst-docs"),
+)
 
 #html.style(
   ```css
@@ -66,7 +71,7 @@
 
 #title()
 
-Unofficial builds of #link("https://typst.app/home")[Typst] artifacts for development purposes.
+#context document.description
 
 #outline()
 
@@ -82,7 +87,7 @@ Unofficial builds of #link("https://typst.app/home")[Typst] artifacts for develo
   render(readme)
 }
 
-= Artifacts in GitHub Releases
+= Artifacts in #link("https://github.com/typst-community/dev-builds/releases")[GitHub Releases]
 #{
   let catalog = json("/dist/catalog.json")
   assert.eq(catalog.version, "0.1.0")
