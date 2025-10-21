@@ -90,14 +90,36 @@
 = Artifacts in #link("https://github.com/typst-community/dev-builds/releases")[GitHub Releases]
 #{
   let catalog = json("/dist/catalog.json")
-  assert.eq(catalog.version, "0.1.0")
+  assert.eq(catalog.version, "0.1.1")
 
   for (name, releases) in catalog.artifacts {
-    [== #raw(name)]
+    let repo = if name != "docs" { name } else { "typst" }
+
+    link("https://github.com/typst/" + repo)[== #raw(name)]
+
+    html.p({
+      html.img(
+        src: (
+          "https://img.shields.io/github/v/release/typst/{repo}?include_prereleases&style=flat-square&label=latest%20tag&color=249dad"
+        ).replace("{repo}", repo),
+        alt: "latest release",
+      )
+      html.img(
+        src: (
+          "https://img.shields.io/github/release-date-pre/typst/{repo}?display_date=published_at&style=flat-square&label=%20"
+        ).replace("{repo}", repo),
+        alt: "release date",
+      )
+    })
+
     list(
-      ..releases.map(r => list.item(
-        link(r.releaseUrl, r.revision),
-      )),
+      ..releases.map(r => list.item[
+        #link(r.releaseUrl, r.revision)
+        (#link(r.officialUrl, {
+          let tagged = r.officialUrl.contains("/releases/tag/")
+          if tagged [release notes] else [tree]
+        }))
+      ]),
     )
   }
 }

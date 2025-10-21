@@ -28,7 +28,7 @@ TAG_PATTERN = re.compile(
 
 type RawReleaseMeta = Literal["name", "tagName", "publishedAt"]
 type ReleaseMeta = Literal[
-    "name", "publishedAt", "revision", "releaseTag", "releaseUrl"
+    "name", "publishedAt", "revision", "releaseTag", "releaseUrl", "officialUrl"
 ]
 
 
@@ -64,6 +64,7 @@ def generate_catalog(
             "revision": match["revision"],
             "releaseTag": r["tagName"],
             "releaseUrl": f"{URL_PREFIX}{r['tagName']}",
+            "officialUrl": get_official_url(match["artifact"], match["revision"]),
         }
 
         catalog[match["artifact"]].append(release)
@@ -74,12 +75,27 @@ def generate_catalog(
     return catalog
 
 
+def is_tagged(revision: str) -> bool:
+    """Determine whether the revision is officially tagged"""
+    # This can be improved in the future when necessary.
+    return revision.startswith("v")
+
+
 def key_for_release(it: dict[ReleaseMeta, str]) -> tuple[int | str | Version, ...]:
-    if it["revision"].startswith("v"):
+    if is_tagged(it["revision"]):
         version = Version(it["revision"])
         return 1, version
     else:
         return 0, it["revision"], it["publishedAt"]
+
+
+def get_official_url(artifact: str, revision: str) -> str:
+    repo = artifact if artifact != "docs" else "typst"
+    if is_tagged(revision):
+        return f"https://github.com/typst/{repo}/releases/tag/{revision}"
+    else:
+        commit = revision.split(".")[-1]
+        return f"https://github.com/typst/{repo}/tree/{commit}"
 
 
 if __name__ == "__main__":
@@ -92,7 +108,7 @@ if __name__ == "__main__":
 
     catalog_json = json.dumps(
         {
-            "version": "0.1.0",
+            "version": "0.1.1",
             "artifacts": catalog,
         },
         indent=2,
