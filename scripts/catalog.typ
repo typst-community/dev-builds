@@ -75,7 +75,7 @@
 
 #outline()
 
-= Introduction
+= Introduction <introduction>
 #{
   let full = read("/README.md")
   let start = "<!-- included by catalog.typ — start -->"
@@ -87,7 +87,7 @@
   render(readme)
 }
 
-= Artifacts in #link("https://github.com/typst-community/dev-builds/releases")[GitHub Releases]
+= Artifacts in #link("https://github.com/typst-community/dev-builds/releases")[GitHub Releases] <artifacts>
 #{
   let catalog = json("/dist/catalog.json")
   assert.eq(catalog.version, "0.1.1")
@@ -95,7 +95,7 @@
   for (name, releases) in catalog.artifacts {
     let repo = if name != "docs" { name } else { "typst" }
 
-    link("https://github.com/typst/" + repo)[== #raw(name)]
+    link("https://github.com/typst/" + repo)[#[== #raw(name)] #label(name)]
 
     html.p({
       html.img(
