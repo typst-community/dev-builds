@@ -8,6 +8,7 @@
 # ///
 
 import json
+import logging
 import re
 from os import getenv
 from pathlib import Path
@@ -31,6 +32,8 @@ type ReleaseMeta = Literal[
     "name", "publishedAt", "revision", "releaseTag", "releaseUrl", "officialUrl"
 ]
 
+logger = logging.getLogger(__name__)
+
 
 def get_raw_releases() -> list[dict[RawReleaseMeta, str]]:
     result = run(
@@ -39,7 +42,37 @@ def get_raw_releases() -> list[dict[RawReleaseMeta, str]]:
         capture_output=True,
         text=True,
     )
-    return json.loads(result.stdout)
+    releases: list[dict[RawReleaseMeta, str]] = json.loads(result.stdout)
+
+    if (release_event := getenv("RELEASE_EVENT")) and (
+        payload := json.loads(release_event)
+    ):
+        # If this script is executed manually, then `$RELEASE_EVENT` does not exist.
+        # If the workflow is not triggered by a release, then the payload will be null.
+
+        logger.info(f"Received the release event from workflow context:\n{payload}")
+        # There is nothing sensitive in the payload.
+        # https://docs.github.com/en/webhooks/webhook-events-and-payloads?actionType=published#release
+
+        name: str = payload["name"]
+        tag_name: str = payload["tag_name"]
+        published_at: str = payload["published_at"]
+
+        if all(tag_name != r["tagName"] for r in releases):
+            # This release has just been published and has not yet appeared in the API used by gh.
+            # We can find its information from workflow context instead.
+            # Note that they use different naming conventions.
+            releases.append(
+                {"name": name, "tagName": tag_name, "publishedAt": published_at}
+            )
+
+            logger.info(f"Added the current release ({tag_name}) to the releases list.")
+        else:
+            logger.info(
+                f"The current release ({tag_name}) is already covered by the API used by gh."
+            )
+
+    return releases
 
 
 def generate_catalog(
@@ -99,6 +132,11 @@ def get_official_url(artifact: str, revision: str) -> str:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
     root_dir = Path(__file__).parent.parent
     dist_dir = root_dir / "dist"
     dist_dir.mkdir(exist_ok=True)
