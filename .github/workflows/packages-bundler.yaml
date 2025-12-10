@@ -1,0 +1,139 @@
+name: Build packages/bundler
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: The branch, tag or SHA in https://github.com/typst/packages.
+        default: main
+        type: string
+      release:
+        description: Whether to publish artifacts in a new release.
+        default: false
+        type: boolean
+
+# The following lines are based on `{test,test_pr}.yml` in typst/packages, licensed under Apache-2.0.
+# https://github.com/typst/packages/blob/3207393501486ee468a15827ce5073da69fd4532/.github/workflows/
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            cargo: cross
+          - target: x86_64-pc-windows-msvc
+            # When cargo xwin compiles the libwebp-sys crate, a number of errors is raised, like the one below:
+            #   always_inline function '…' requires target feature 'ssse3', but would be inlined into function 'ExtractAlpha_SSE41' that is compiled without support for 'ssse3'
+            # Therefore, we resort to the native toolchain.
+            os: windows-latest
+            cargo: cargo
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: typst/packages
+          ref: ${{ github.event.inputs.ref }}
+          sparse-checkout: |
+            bundler/
+            docs/
+            LICENSE
+
+      - uses: actions/checkout@v4
+        with:
+          path: dev-builds
+      - uses: actions/setup-python@v6
+        if: ${{ matrix.os == 'windows-latest' }}
+        with:
+          # `get_revision.py` requires Python 3.11+,
+          # but as of 2025-09-29, windows-latest has Python 3.9.
+          python-version: "3.12"
+      - name: Report the revision
+        shell: bash
+        id: report
+        run: |
+          set -euxo pipefail
+          revision=$(python dev-builds/scripts/get_revision.py)
+          echo "Revision: $revision"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "Revision: \`$revision\`." >> "$GITHUB_STEP_SUMMARY"
+
+      - run: rustup target add ${{ matrix.target }}
+
+      - name: Setup cross
+        if: ${{ matrix.cargo == 'cross' }}
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall cross --force  # Even if cached, reinstall to set PATH properly.
+      - name: Fix libwebp-sys build for Windows
+        if: ${{ matrix.target == 'x86_64-pc-windows-msvc' }}
+        # Update the cc crate.
+        #
+        # Without this step, there will be linker errors when compiling the libwebp-sys build script:
+        #   error LNK2019: unresolved external symbol SystemFunction036 referenced in function _***jobserver3imp9getrandom***
+        # The SystemFunction036 (aka. RtlGenRandom) is included in advapi32.lib.
+        # https://learn.microsoft.com/windows/win32/api/ntsecapi/nf-ntsecapi-rtlgenrandom
+        # On Windows Desktop, this can be fixed by configuring `rustflags = ["-C", "link-args=/DEFAULTLIB:advapi32.lib"]`.
+        # However, for unknown reasons, that does not work with GitHub's runner image as of 2025-12.
+        #
+        # Therefore, we update the cc crate from 1.1.0 (2024-07-08) to the latest.
+        # The minimal working version is 1.1.3 (2024-07-14), and the latest 1.2 versions also work.
+        # (as of 2025-12)
+        run: |
+          cargo update --package cc --manifest-path bundler/Cargo.toml
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-packages-bundler-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.target }}-packages-bundler
+            ${{ runner.os }}-cargo-${{ matrix.target }}
+
+      - name: Build
+        run: |
+          ${{ matrix.cargo }} build --manifest-path bundler/Cargo.toml --release --target ${{ matrix.target }}
+
+      - name: Prepare to upload
+        shell: bash
+        run: |
+          set -euxo pipefail
+          directory=packages-bundler-${{ matrix.target }}
+          mkdir $directory
+          cp docs/{README,manifest}.md LICENSE $directory
+          if [ -f bundler/target/${{ matrix.target }}/release/bundler.exe ]; then
+            cp bundler/target/${{ matrix.target }}/release/bundler.exe $directory
+            7z a -r $directory.zip $directory
+          else
+            cp bundler/target/${{ matrix.target }}/release/bundler $directory
+            tar cJf $directory.tar.xz $directory
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-bundler-${{ matrix.target }}
+          path: "packages-bundler-${{ matrix.target }}.*"
+
+      - uses: softprops/action-gh-release@v2
+        if: ${{ inputs.release }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.report.outputs.revision }}
+          name: ${{ steps.report.outputs.revision }}
+          draft: true
+          prerelease: false # can be edited in the Web UI
+          files: |
+            packages-bundler-${{ matrix.target }}.*
+      - name: Report the release
+        if: ${{ inputs.release }}
+        run: |
+          echo "Please publish the [draft release](https://github.com/typst-community/dev-builds/releases)." >> "$GITHUB_STEP_SUMMARY"

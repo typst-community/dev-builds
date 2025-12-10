@@ -83,6 +83,7 @@ def generate_catalog(
         "docs": [],
         "typst": [],
         "package-check": [],
+        "packages-bundler": [],
         "hayagriva": [],
     }
 
