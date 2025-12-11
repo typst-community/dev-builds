@@ -9,6 +9,7 @@ Unofficial builds of [Typst](https://typst.app/home) artifacts for development p
   - `docs` [Documentation](https://typst.app/docs/) (see [below](#additional-explanation-for-docs) for explanation)
   - `typst` [Typst](https://typst.app/open-source/#download)
   - `package-check` [Typst package check](https://github.com/typst/package-check)
+  - `packages-bundler` [The bundler for packages](https://github.com/typst/packages/blob/main/bundler/Cargo.toml#L2)
   - `hayagriva` [Hayagriva](https://github.com/typst/hayagriva)
 
   A machine-readable sorted catalog of published artifacts is available at [`catalog.json`](https://typst-community.github.io/dev-builds/catalog.json).
@@ -76,6 +77,22 @@ gh run download --name typst-package-check-x86_64-pc-windows-msvc
 unzip typst-package-check-x86_64-pc-windows-msvc.zip
 ./typst-package-check-x86_64-pc-windows-msvc/typst-package-check.exe check --help
 ```
+
+### `packages-bundler`
+
+```shell
+gh run download --name packages-bundler-x86_64-unknown-linux-musl
+tar -xf packages-bundler-x86_64-unknown-linux-musl.tar.xz
+mkdir packages
+./packages-bundler-x86_64-unknown-linux-musl/bundler --out-dir dist
+
+gh run download --name packages-bundler-x86_64-pc-windows-msvc
+unzip packages-bundler-x86_64-pc-windows-msvc.zip
+mkdir packages
+./packages-bundler-x86_64-pc-windows-msvc/bundler.exe --out-dir dist
+```
+
+`bundler` will read entries in the `packages` directory.
 
 ### `hayagriva`
 
