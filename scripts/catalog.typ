@@ -90,27 +90,37 @@
 = Artifacts in #link("https://github.com/typst-community/dev-builds/releases")[GitHub Releases] <artifacts>
 #{
   let catalog = json("/dist/catalog.json")
-  assert.eq(catalog.version, "0.1.1")
+  assert.eq(catalog.version, "0.1.2")
 
   for (name, releases) in catalog.artifacts {
-    let repo = if name != "docs" { name } else { "typst" }
+    let (repo, path) = if name == "docs" {
+      ("typst", "/tree/main/docs")
+    } else if name == "packages-bundler" {
+      ("packages", "/tree/main/bundler")
+    } else {
+      (name, "")
+    }
 
-    link("https://github.com/typst/" + repo)[#[== #raw(name)] #label(name)]
+    link("https://github.com/typst/" + repo + path)[#[== #raw(name)] #label(name)]
 
-    html.p({
-      html.img(
-        src: (
-          "https://img.shields.io/github/v/release/typst/{repo}?include_prereleases&style=flat-square&label=latest%20tag&color=249dad"
-        ).replace("{repo}", repo),
-        alt: "latest release",
-      )
-      html.img(
-        src: (
-          "https://img.shields.io/github/release-date-pre/typst/{repo}?display_date=published_at&style=flat-square&label=%20"
-        ).replace("{repo}", repo),
-        alt: "release date",
-      )
-    })
+    // Display the latest release
+    // Skip the packages repo because it's untagged.
+    if repo != "packages" {
+      html.p({
+        html.img(
+          src: (
+            "https://img.shields.io/github/v/release/typst/{repo}?include_prereleases&style=flat-square&label=latest%20tag&color=249dad"
+          ).replace("{repo}", repo),
+          alt: "latest release",
+        )
+        html.img(
+          src: (
+            "https://img.shields.io/github/release-date-pre/typst/{repo}?display_date=published_at&style=flat-square&label=%20"
+          ).replace("{repo}", repo),
+          alt: "release date",
+        )
+      })
+    }
 
     list(
       ..releases.map(r => list.item[

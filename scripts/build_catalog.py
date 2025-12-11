@@ -124,12 +124,22 @@ def key_for_release(it: dict[ReleaseMeta, str]) -> tuple[int | str | Version, ..
 
 
 def get_official_url(artifact: str, revision: str) -> str:
-    repo = artifact if artifact != "docs" else "typst"
+    match artifact:
+        case "docs":
+            repo = "typst"
+            path = "/docs"
+        case "packages-bundler":
+            repo = "packages"
+            path = "/bundler"
+        case _:
+            repo = artifact
+            path = ""
+
     if is_tagged(revision):
         return f"https://github.com/typst/{repo}/releases/tag/{revision}"
     else:
         commit = revision.split(".")[-1]
-        return f"https://github.com/typst/{repo}/tree/{commit}"
+        return f"https://github.com/typst/{repo}/tree/{commit}{path}"
 
 
 if __name__ == "__main__":
@@ -147,7 +157,7 @@ if __name__ == "__main__":
 
     catalog_json = json.dumps(
         {
-            "version": "0.1.1",
+            "version": "0.1.2",
             "artifacts": catalog,
         },
         indent=2,
