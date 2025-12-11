@@ -28,12 +28,10 @@ jobs:
             bits: 64
             os: ubuntu-latest
             cross: true
-            docs: true
           - target: x86_64-pc-windows-msvc
             bits: 64
             os: windows-latest
             cross: false
-            docs: false
 
     steps:
       - uses: actions/checkout@v4
