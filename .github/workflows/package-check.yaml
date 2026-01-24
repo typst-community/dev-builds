@@ -27,6 +27,9 @@ jobs:
     env:
       INPUT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || 'main' }}
       INPUT_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release || false }}
+      # We pin xwin to 16 for now, because as of 2026-01, the default xwin 17 can't compile cxx 1.0.194, which is required by typst-package-check through wasm-opt(build).
+      # https://github.com/typst-community/dev-builds/issues/4
+      XWIN_VERSION: ${{ matrix.cargo == 'cargo xwin' && '16' || '' }}
     strategy:
       matrix:
         include:
@@ -63,7 +66,7 @@ jobs:
           path: |
             ~/.cache/cargo-xwin
           key: |
-            ${{ runner.os }}-cargo-xwin-${{ matrix.target }}
+            ${{ runner.os }}-cargo-xwin-${{ env.XWIN_VERSION }}-${{ matrix.target }}
       - name: Setup cargo xwin
         if: ${{ matrix.cargo == 'cargo xwin' }}
         run: |
