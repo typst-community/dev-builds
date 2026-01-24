@@ -68,6 +68,12 @@ jobs:
         if: ${{ matrix.cargo == 'cargo xwin' }}
         run: |
           rustup component add llvm-tools
+          # Install Clang 19 (required by latest MSVC CRT headers)
+          sudo apt-get update
+          sudo apt-get install -y clang-19
+          # Set Clang 19 as the default C/C++ compiler for cargo-xwin
+          echo "CC=clang-19" >> $GITHUB_ENV
+          echo "CXX=clang++-19" >> $GITHUB_ENV
           pip install cargo-xwin
       - name: Setup cross
         if: ${{ matrix.cargo == 'cross' }}
