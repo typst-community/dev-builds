@@ -72,8 +72,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang-19
           # Set clang-cl-19 for Windows MSVC target (cargo-xwin uses clang-cl)
-          echo "CC_x86_64_pc_windows_msvc=clang-cl-19" >> $GITHUB_ENV
-          echo "CXX_x86_64_pc_windows_msvc=clang-cl-19" >> $GITHUB_ENV
+          # Note: Environment variable names use underscores instead of hyphens
+          TARGET_UNDERSCORE=$(echo "${{ matrix.target }}" | tr '-' '_')
+          echo "CC_${TARGET_UNDERSCORE}=clang-cl-19" >> $GITHUB_ENV
+          echo "CXX_${TARGET_UNDERSCORE}=clang-cl-19" >> $GITHUB_ENV
           pip install cargo-xwin
       - name: Setup cross
         uses: taiki-e/install-action@v2
