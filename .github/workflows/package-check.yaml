@@ -71,11 +71,10 @@ jobs:
           # Install Clang 19 (required by latest MSVC CRT headers)
           sudo apt-get update
           sudo apt-get install -y clang-19
-          # Set clang-cl-19 for Windows MSVC target (cargo-xwin uses clang-cl)
-          # Note: Environment variable names use underscores instead of hyphens
-          TARGET_UNDERSCORE=$(echo "${{ matrix.target }}" | tr '-' '_')
-          echo "CC_${TARGET_UNDERSCORE}=clang-cl-19" >> $GITHUB_ENV
-          echo "CXX_${TARGET_UNDERSCORE}=clang-cl-19" >> $GITHUB_ENV
+          # Make clang-19 the default clang so cargo-xwin uses it
+          # cargo-xwin creates a clang-cl symlink that points to whatever 'clang' is in PATH
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
           pip install cargo-xwin
       - name: Setup cross
         uses: taiki-e/install-action@v2
