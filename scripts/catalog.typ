@@ -73,6 +73,11 @@
 
 #context document.description
 
+#show outline: body => {
+  // Remove external links
+  show link: it => if type(it.dest) == str { it.body } else { it }
+  body
+}
 #outline()
 
 = Introduction <introduction>
@@ -105,7 +110,7 @@ There might be more recent builds in #link("https://github.com/typst-community/d
       (name, "")
     }
 
-    link("https://github.com/typst/" + repo + path)[#[== #raw(name)] #label(name)]
+    [#[== #link("https://github.com/typst/" + repo + path, raw(name))] #label(name)]
 
     html.p({
       // Display the latest release
