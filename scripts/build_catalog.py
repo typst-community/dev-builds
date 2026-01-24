@@ -37,7 +37,11 @@ logger = logging.getLogger(__name__)
 
 def get_raw_releases() -> list[dict[RawReleaseMeta, str]]:
     result = run(
-        ["gh", "release", "list", "--json", "name,tagName,publishedAt"],
+        [
+            *("gh", "release", "list"),
+            *("--json", "name,tagName,publishedAt"),
+            "--exclude-drafts",
+        ],
         check=True,
         capture_output=True,
         text=True,
