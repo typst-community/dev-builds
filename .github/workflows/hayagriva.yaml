@@ -11,6 +11,9 @@ on:
         description: Whether to publish artifacts in a new release.
         default: false
         type: boolean
+  pull_request:
+    paths:
+      - .github/workflows/hayagriva.yaml
 
 # The following lines are based on GitHub docs, because typst/hayagriva does not build CLI.
 # https://docs.github.com/en/actions/tutorials/build-and-test-code/rust
@@ -21,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      INPUT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || 'main' }}
+      INPUT_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release || false }}
     strategy:
       matrix:
         include:
@@ -33,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: typst/hayagriva
-          ref: ${{ github.event.inputs.ref }}
+          ref: ${{ env.INPUT_REF }}
 
       - uses: actions/checkout@v4
         with:
@@ -105,7 +111,7 @@ jobs:
           path: "hayagriva-${{ matrix.target }}.*"
 
       - uses: softprops/action-gh-release@v2
-        if: ${{ inputs.release }}
+        if: ${{ env.INPUT_RELEASE == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -116,6 +122,6 @@ jobs:
           files: |
             hayagriva-${{ matrix.target }}.*
       - name: Report the release
-        if: ${{ inputs.release }}
+        if: ${{ env.INPUT_RELEASE == 'true' }}
         run: |
           echo "Please publish the [draft release](https://github.com/typst-community/dev-builds/releases)." >> "$GITHUB_STEP_SUMMARY"

@@ -11,6 +11,9 @@ on:
         description: Whether to publish artifacts in a new release.
         default: false
         type: boolean
+  pull_request:
+    paths:
+      - .github/workflows/packages-bundler.yaml
 
 # The following lines are based on `{test,test_pr}.yml` in typst/packages, licensed under Apache-2.0.
 # https://github.com/typst/packages/blob/3207393501486ee468a15827ce5073da69fd4532/.github/workflows/
@@ -21,6 +24,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
+    env:
+      INPUT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || 'main' }}
+      INPUT_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release || false }}
     strategy:
       matrix:
         include:
@@ -38,7 +44,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: typst/packages
-          ref: ${{ github.event.inputs.ref }}
+          ref: ${{ env.INPUT_REF }}
           sparse-checkout: |
             bundler/
             docs/
@@ -123,7 +129,7 @@ jobs:
           path: "packages-bundler-${{ matrix.target }}.*"
 
       - uses: softprops/action-gh-release@v2
-        if: ${{ inputs.release }}
+        if: ${{ env.INPUT_RELEASE == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -134,6 +140,6 @@ jobs:
           files: |
             packages-bundler-${{ matrix.target }}.*
       - name: Report the release
-        if: ${{ inputs.release }}
+        if: ${{ env.INPUT_RELEASE == 'true' }}
         run: |
           echo "Please publish the [draft release](https://github.com/typst-community/dev-builds/releases)." >> "$GITHUB_STEP_SUMMARY"
