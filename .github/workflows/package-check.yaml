@@ -63,7 +63,7 @@ jobs:
           path: |
             ~/.cache/cargo-xwin
           key: |
-            ${{ runner.os }}-cargo-xwin-${{ matrix.target }}
+            ${{ runner.os }}-cargo-xwin-${{ matrix.target }}-clang19
       - name: Setup cargo xwin
         if: ${{ matrix.cargo == 'cargo xwin' }}
         run: |
@@ -75,6 +75,8 @@ jobs:
           # cargo-xwin creates a clang-cl symlink that points to whatever 'clang' is in PATH
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
+          # Remove any cached clang-cl symlink that might point to old clang
+          rm -f ~/.cache/cargo-xwin/clang-cl
           pip install cargo-xwin
       - name: Setup cross
         uses: taiki-e/install-action@v2
