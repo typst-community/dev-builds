@@ -76,10 +76,11 @@ jobs:
           echo "CXX=clang++-19" >> $GITHUB_ENV
           pip install cargo-xwin
       - name: Setup cross
+        uses: taiki-e/install-action@v2
         if: ${{ matrix.cargo == 'cross' }}
-        run: |
-          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-          cargo binstall cross --force  # Even if cached, reinstall to set PATH properly.
+        # Even if cached, reinstall to set PATH properly.
+        with:
+          tool: cross
       - name: Vendor openssl for musl
         if: ${{ endsWith(matrix.target, '-musl') }}
         run: |
