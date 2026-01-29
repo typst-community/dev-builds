@@ -40,12 +40,12 @@ jobs:
             cross: false
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: typst/typst
           ref: ${{ env.INPUT_REF }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: dev-builds
       - uses: actions/setup-python@v6

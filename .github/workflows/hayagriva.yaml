@@ -36,12 +36,12 @@ jobs:
             cargo: cargo xwin
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: typst/hayagriva
           ref: ${{ env.INPUT_REF }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: dev-builds
       - name: Report the revision

@@ -28,12 +28,12 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: typst/typst
           ref: ${{ github.event.inputs.ref }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: dev-builds
       - name: Report the revision

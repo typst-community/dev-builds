@@ -41,7 +41,7 @@ jobs:
             cargo: cargo
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: typst/packages
           ref: ${{ env.INPUT_REF }}
@@ -50,7 +50,7 @@ jobs:
             docs/
             LICENSE
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: dev-builds
       - uses: actions/setup-python@v6
