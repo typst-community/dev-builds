@@ -46,7 +46,7 @@ jobs:
           echo "revision=$revision" >> "$GITHUB_OUTPUT"
           echo "Revision: \`$revision\`." >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
