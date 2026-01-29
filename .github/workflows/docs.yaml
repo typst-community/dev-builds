@@ -68,12 +68,12 @@ jobs:
           7z a docs-assets.zip assets/
 
       - name: Upload docs.json
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: docs.json
           path: docs.json
       - name: Upload docs-assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: docs-assets
           path: docs-assets.zip

@@ -96,7 +96,7 @@ jobs:
             tar cJf $directory.tar.xz $directory
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: typst-${{ matrix.target }}
           path: "typst-${{ matrix.target }}.*"
