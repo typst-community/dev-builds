@@ -64,7 +64,7 @@ jobs:
           echo "revision=$revision" >> "$GITHUB_OUTPUT"
           echo "Revision: \`$revision\`." >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: dtolnay/rust-toolchain@1.100.0
+      - uses: dtolnay/rust-toolchain@1.93.0
         with:
           target: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
