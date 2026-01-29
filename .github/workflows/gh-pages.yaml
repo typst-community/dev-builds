@@ -28,7 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }} # Required by gh
           RELEASE_EVENT: ${{ toJson(github.event.release) }} # Circumvent API delay
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: ./dist
 
