@@ -58,7 +58,7 @@ jobs:
 
       - name: Cache cargo xwin
         if: ${{ matrix.cargo == 'cargo xwin' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/cargo-xwin
@@ -74,7 +74,7 @@ jobs:
           curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
           cargo binstall cross --force  # Even if cached, reinstall to set PATH properly.
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
