@@ -123,7 +123,7 @@ jobs:
             tar cJf $directory.tar.xz $directory
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: packages-bundler-${{ matrix.target }}
           path: "packages-bundler-${{ matrix.target }}.*"
