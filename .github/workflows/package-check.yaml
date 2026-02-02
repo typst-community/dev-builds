@@ -27,9 +27,6 @@ jobs:
     env:
       INPUT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || 'main' }}
       INPUT_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release || false }}
-      # We pin xwin to 16 for now, because as of 2026-01, the default xwin 17 can't compile cxx 1.0.194, which is required by typst-package-check through wasm-opt(build).
-      # https://github.com/typst-community/dev-builds/issues/4
-      XWIN_VERSION: ${{ matrix.cargo == 'cargo xwin' && '16' || '' }}
     strategy:
       matrix:
         include:
@@ -66,12 +63,34 @@ jobs:
           path: |
             ~/.cache/cargo-xwin
           key: |
-            ${{ runner.os }}-cargo-xwin-${{ env.XWIN_VERSION }}-${{ matrix.target }}
+            ${{ runner.os }}-cargo-xwin-${{ matrix.target }}
       - name: Setup cargo xwin
         if: ${{ matrix.cargo == 'cargo xwin' }}
         run: |
+          set -euxo pipefail
+          # Install llvm-tools for assembly dependencies.
+          # Otherwise, the following error will occur.
+          #   error: failed to run custom build command for `link-cplusplus v1.0.12`
+          #     --- stderr
+          #     error occurred in cc-rs: failed to find tool "llvm-lib": No such file or directory (os error 2)
+          # (link-cplusplus is used by cxx)
           rustup component add llvm-tools
+
+          # Install clang 19 for cxx.
+          # The default 18 cannot compile cxx 1.0.194, which is required by typst-package-check through wasm-opt(build).
+          sudo apt update
+          sudo apt install clang-19
+          # Note: The priority of the default clang 18 is 100.
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 120
+          # Display that clang 19 is the best version now.
+          update-alternatives --display clang
+
           pip install cargo-xwin
+      - name: Download xwin (MSVC CRT and Windows SDK)
+        if: ${{ matrix.cargo == 'cargo xwin' }}
+        run: |
+          cargo xwin cache xwin
+
       - name: Setup cross
         if: ${{ matrix.cargo == 'cross' }}
         run: |
