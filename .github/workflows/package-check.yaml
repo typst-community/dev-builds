@@ -72,6 +72,11 @@ jobs:
         run: |
           rustup component add llvm-tools
           pip install cargo-xwin
+      - name: Download xwin (MSVC CRT and Windows SDK)
+        if: ${{ matrix.cargo == 'cargo xwin' }}
+        run: |
+          cargo xwin cache xwin
+
       - name: Setup cross
         if: ${{ matrix.cargo == 'cross' }}
         run: |
