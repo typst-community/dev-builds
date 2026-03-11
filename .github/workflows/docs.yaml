@@ -68,15 +68,16 @@ jobs:
           7z a docs-assets.zip assets/
 
       - name: Upload docs.json
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: docs.json
           path: docs.json
+          archive: true
       - name: Upload docs-assets
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
-          name: docs-assets
           path: docs-assets.zip
+          archive: false
 
       - uses: softprops/action-gh-release@v2
         if: ${{ inputs.release }}
