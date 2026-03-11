@@ -17,6 +17,9 @@ on:
         description: Whether to publish artifacts in a new release.
         default: false
         type: boolean
+  pull_request:
+    paths:
+      - .github/workflows/docs.yaml
 
 # This workflow cannot share caches with typst.yaml, because x86_64-unknown-linux-gnu ≠ x86_64-unknown-linux-musl.
 
@@ -26,12 +29,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
+    env:
+      INPUT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || 'main' }}
+      INPUT_DOCS_BASE: ${{ github.event_name == 'workflow_dispatch' && inputs.docs_base || '/DOCS-BASE/' }}
+      INPUT_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release || false }}
     steps:
       - uses: actions/checkout@v6
         with:
           repository: typst/typst
-          ref: ${{ github.event.inputs.ref }}
+          ref: ${{ env.INPUT_REF }}
 
       - uses: actions/checkout@v6
         with:
@@ -59,7 +65,7 @@ jobs:
 
       - name: Build docs
         run: |
-          cargo run --package typst-docs --release -- --assets-dir assets/ --out-file docs.json --base "${{ github.event.inputs.docs_base }}"
+          cargo run --package typst-docs --release -- --assets-dir assets/ --out-file docs.json --base "${{ env.INPUT_DOCS_BASE }}"
 
       - name: Prepare to upload
         shell: bash
@@ -68,18 +74,19 @@ jobs:
           7z a docs-assets.zip assets/
 
       - name: Upload docs.json
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: docs.json
           path: docs.json
+          archive: true
       - name: Upload docs-assets
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
-          name: docs-assets
           path: docs-assets.zip
+          archive: false
 
       - uses: softprops/action-gh-release@v2
-        if: ${{ inputs.release }}
+        if: ${{ env.INPUT_RELEASE == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -91,6 +98,6 @@ jobs:
             docs.json
             docs-assets.zip
       - name: Report the release
-        if: ${{ inputs.release }}
+        if: ${{ env.INPUT_RELEASE == 'true' }}
         run: |
           echo "Please publish the [draft release](https://github.com/typst-community/dev-builds/releases)." >> "$GITHUB_STEP_SUMMARY"

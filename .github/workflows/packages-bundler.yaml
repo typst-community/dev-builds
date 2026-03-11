@@ -123,10 +123,10 @@ jobs:
             tar cJf $directory.tar.xz $directory
           fi
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
-          name: packages-bundler-${{ matrix.target }}
           path: "packages-bundler-${{ matrix.target }}.*"
+          archive: false
 
       - uses: softprops/action-gh-release@v2
         if: ${{ env.INPUT_RELEASE == 'true' }}
