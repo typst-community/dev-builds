@@ -34,6 +34,8 @@ Unofficial builds of [Typst](https://typst.app/home) artifacts for development p
 You can build a docs website from these files yourself by leveraging [typst-docs-web](https://github.com/typst-community/typst-docs-web) and [other](https://ydx-2147483647.github.io/best-of-typst/#docs-infra) unofficial tools.
 The base URL for the files is set to `/DOCS-BASE/`. Please replace the string with your actual base URL. For example, [`sd '/DOCS-BASE/' '/' docs.json`](https://webinstall.dev/sd/).
 
+Note that [`<contributors/>` in changelog pages](https://github.com/typst/typst/blob/v0.14.2/docs/changelog/0.14.2.md?plain=1#L19) are collected during the closed-source build steps. `docs.json` here omits the list of contributors, because [the resolver does not support it](https://github.com/typst/typst/blob/v0.14.2/docs/src/main.rs#L16-L21).
+
 <!-- included by catalog.typ — end -->
 
 ## Debugging recipes
