@@ -25,7 +25,7 @@ def get_description() -> str:
     # As a result, `git describe --tags` is always relative to v0.11.0, like `v0.11.0-1051-g586b04948`.
 
     name_full = run(
-        ["git", "name-rev", "--name-only", "HEAD"],
+        ["git", "name-rev", "--name-only", "--no-undefined", "HEAD"],
         capture_output=True,
         text=True,
         check=True,
