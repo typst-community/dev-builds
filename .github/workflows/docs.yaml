@@ -7,12 +7,6 @@ on:
         description: The branch, tag or SHA in https://github.com/typst/typst.
         default: main
         type: string
-      docs_base:
-        description: |
-          The base URL for the documentation. For example, `/` or `/docs/`.
-          Refer to typst-docs CLI for more info.
-        default: /DOCS-BASE/
-        type: string
       release:
         description: Whether to publish artifacts in a new release.
         default: false
@@ -31,16 +25,12 @@ jobs:
       contents: write
     env:
       INPUT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || 'main' }}
-      INPUT_DOCS_BASE: ${{ github.event_name == 'workflow_dispatch' && inputs.docs_base || '/DOCS-BASE/' }}
       INPUT_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release || false }}
     steps:
       - uses: actions/checkout@v6
         with:
           repository: typst/typst
-          # Temporary workaround for using the old docs infrastructure
-          ref: main
-          fetch-depth: 20
-      - run: git switch --detach ${{ env.INPUT_REF }}
+          ref: ${{ env.INPUT_REF }}
 
       - uses: actions/checkout@v6
         with:
@@ -66,26 +56,64 @@ jobs:
             ${{ runner.os }}-cargo-typst
             ${{ runner.os }}-cargo
 
+      - name: Switch the profile for cargo docit
+        run: |
+          git apply <<'EOF'
+          --- a/.cargo/config.toml
+          +++ b/.cargo/config.toml
+          @@ -8,7 +8,5 @@ testit = "run --quiet --package=test-wrapper --"
+
+           # Runs the documentation generator.
+           #
+          -# We use the `dev-fast` profile as a reasonable trade-off between Rust and Typst
+          -# compilation speed. Just `dev` makes the Typst compilation very slow, while
+          -# `release` makes the Rust compilation very slow.
+          -docit = "run --profile dev-fast --package=typst-docs --"
+          +# We use the `release` profile to optimize the resulting binary.
+          +docit = "run --release --package=typst-docs --"
+          EOF
+
+      - name: Build cargo docit CLI
+        run: |
+          cargo docit --help
       - name: Build docs
         run: |
-          cargo run --package typst-docs --release -- --assets-dir assets/ --out-file docs.json --base "${{ env.INPUT_DOCS_BASE }}"
+          cargo docit compile --format website
+          cargo docit compile --format pdf
 
       - name: Prepare to upload
         shell: bash
         run: |
           set -euxo pipefail
-          7z a docs-assets.zip assets/
 
-      - name: Upload docs.json
+          7z a docs-website.zip docs/dist/site/
+
+          directory=docs-cli-${{ matrix.target }}
+          mkdir $directory
+          cp README.md LICENSE NOTICE $directory
+          if [ -f target/${{ matrix.target }}/release/typst-docs.exe ]; then
+            cp target/${{ matrix.target }}/release/typst-docs.exe $directory
+            7z a -r $directory.zip $directory
+          else
+            cp target/${{ matrix.target }}/release/typst-docs $directory
+            tar cJf $directory.tar.xz $directory
+          fi
+
+      - name: Upload docs.pdf
         uses: actions/upload-artifact@v7
         with:
-          name: docs.json
-          path: docs.json
+          name: docs.pdf
+          path: docs/dist/docs.pdf
           archive: true
-      - name: Upload docs-assets
+      - name: Upload docs-website
         uses: actions/upload-artifact@v7
         with:
-          path: docs-assets.zip
+          path: docs-website.zip
+          archive: false
+      - name: Upload docs-cli
+        uses: actions/upload-artifact@v7
+        with:
+          path: "docs-cli-${{ matrix.target }}.*"
           archive: false
 
       - uses: softprops/action-gh-release@v2
