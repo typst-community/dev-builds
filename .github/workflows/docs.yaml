@@ -37,7 +37,10 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: typst/typst
-          ref: ${{ env.INPUT_REF }}
+          # Temporary workaround for using the old docs infrastructure
+          ref: main
+          fetch-depth: 20
+      - run: git switch --detach ${{ env.INPUT_REF }}
 
       - uses: actions/checkout@v6
         with:
