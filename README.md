@@ -25,7 +25,6 @@ Unofficial builds of [Typst](https://typst.app/home) artifacts for development p
   Artifacts in [Releases](https://github.com/typst-community/dev-builds/releases/) are practically permanent, and are suitable for CI.
 
   Artifacts in [Actions](https://github.com/typst-community/dev-builds/actions) are retained for 90 days before they are [automatically deleted by GitHub](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization).
-  Besides, files downloaded from GitHub workflow webpages might be double-zipped. You can use [`gh run download --name ⟨asset-name⟩`](https://cli.github.com/manual/gh_run_download) instead.
 
 ## Additional explanation for `docs`
 
