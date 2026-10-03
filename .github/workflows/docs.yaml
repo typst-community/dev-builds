@@ -41,12 +41,12 @@ jobs:
             run-docit: false
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: typst/typst
           ref: ${{ env.INPUT_REF }}
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: dev-builds
       - uses: actions/setup-python@v6
