@@ -138,7 +138,7 @@ jobs:
           path: "typst-package-check-${{ matrix.target }}.*"
           archive: false
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         if: ${{ env.INPUT_RELEASE == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
