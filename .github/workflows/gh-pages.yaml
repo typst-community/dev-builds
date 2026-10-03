@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: typst-community/setup-typst@v4
         with:
-          typst-version: v0.14.2
+          typst-version: v0.15.1
       - uses: actions/configure-pages@v6
       - run: python scripts/build_catalog.py
         env:

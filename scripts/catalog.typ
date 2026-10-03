@@ -78,7 +78,7 @@
   show link: it => if type(it.dest) == str { it.body } else { it }
   body
 }
-#outline()
+#outline(depth: 2)
 
 = Introduction <introduction>
 #{
