@@ -7,12 +7,6 @@ on:
         description: The branch, tag or SHA in https://github.com/typst/typst.
         default: main
         type: string
-      docs_base:
-        description: |
-          The base URL for the documentation. For example, `/` or `/docs/`.
-          Refer to typst-docs CLI for more info.
-        default: /DOCS-BASE/
-        type: string
       release:
         description: Whether to publish artifacts in a new release.
         default: false
@@ -21,30 +15,46 @@ on:
     paths:
       - .github/workflows/docs.yaml
 
-# This workflow cannot share caches with typst.yaml, because x86_64-unknown-linux-gnu ≠ x86_64-unknown-linux-musl.
+# This workflow shares caches with typst.yaml.
 
 jobs:
   build:
-    name: Build docs
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
     env:
       INPUT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || 'main' }}
-      INPUT_DOCS_BASE: ${{ github.event_name == 'workflow_dispatch' && inputs.docs_base || '/DOCS-BASE/' }}
       INPUT_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release || false }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            bits: 64
+            os: ubuntu-latest
+            cross: true
+            run-docit: true
+          - target: x86_64-pc-windows-msvc
+            bits: 64
+            os: windows-latest
+            cross: false
+            run-docit: false
+
     steps:
       - uses: actions/checkout@v6
         with:
           repository: typst/typst
-          # Temporary workaround for using the old docs infrastructure
-          ref: main
-          fetch-depth: 20
-      - run: git switch --detach ${{ env.INPUT_REF }}
+          ref: ${{ env.INPUT_REF }}
 
       - uses: actions/checkout@v6
         with:
           path: dev-builds
+      - uses: actions/setup-python@v6
+        if: ${{ matrix.os == 'windows-latest' }}
+        with:
+          # `get_revision.py` requires Python 3.11+,
+          # but as of 2025-09-29, windows-latest has Python 3.9.
+          python-version: '3.12'
       - name: Report the revision
         shell: bash
         id: report
@@ -55,37 +65,78 @@ jobs:
           echo "revision=$revision" >> "$GITHUB_OUTPUT"
           echo "Revision: \`$revision\`." >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/cache@v5
+      - uses: dtolnay/rust-toolchain@1.96.0
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-typst-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-typst
-            ${{ runner.os }}-cargo
+          target: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.bits }}
 
-      - name: Build docs
-        run: |
-          cargo run --package typst-docs --release -- --assets-dir assets/ --out-file docs.json --base "${{ env.INPUT_DOCS_BASE }}"
-
-      - name: Prepare to upload
+      - name: Build docit using cross
+        if: ${{ matrix.cross }}
         shell: bash
         run: |
           set -euxo pipefail
-          7z a docs-assets.zip assets/
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall cross --force  # Even if cached, reinstall to set PATH properly.
+          cargo add -p typst-docs typst-kit -F vendor-openssl
+          cross build -p typst-docs --release --target ${{ matrix.target }}
+      - name: Build docit using cargo
+        if: ${{ !matrix.cross }}
+        run: cargo build -p typst-docs --release --target ${{ matrix.target }}
 
-      - name: Upload docs.json
+      - name: Run docit
+        if: ${{ matrix.run-docit }}
+        shell: bash
+        # - Call the binary directly, because `cargo run` does not work for musl.
+        # - Override the default `--workspace`, which is a path in the container for cross.
+        run: |
+          set -euxo pipefail
+          docit_compile() {
+            target/${{ matrix.target }}/release/typst-docs compile \
+              --workspace "$GITHUB_WORKSPACE" \
+              "$@"
+          }
+          docit_compile --format website
+          docit_compile --format pdf
+      - name: Prepare to upload docs
+        if: ${{ matrix.run-docit }}
+        run: |
+          cd docs/dist
+          7z a docs-website.zip site/
+
+      - name: Prepare to upload docit
+        shell: bash
+        run: |
+          set -euxo pipefail
+          directory=docit-${{ matrix.target }}
+          mkdir $directory
+          cp docs/README.md LICENSE NOTICE $directory
+          if [ -f target/${{ matrix.target }}/release/typst-docs.exe ]; then
+            cp target/${{ matrix.target }}/release/typst-docs.exe $directory
+            7z a -r $directory.zip $directory
+          else
+            cp target/${{ matrix.target }}/release/typst-docs $directory
+            tar cJf $directory.tar.xz $directory
+          fi
+
+      - name: Upload docs.pdf
+        if: ${{ matrix.run-docit }}
         uses: actions/upload-artifact@v7
         with:
-          name: docs.json
-          path: docs.json
+          name: docs.pdf
+          path: docs/dist/docs.pdf
           archive: true
-      - name: Upload docs-assets
+      - name: Upload docs-website
+        if: ${{ matrix.run-docit }}
         uses: actions/upload-artifact@v7
         with:
-          path: docs-assets.zip
+          path: docs/dist/docs-website.zip
+          archive: false
+      - name: Upload docit
+        uses: actions/upload-artifact@v7
+        with:
+          path: "docit-${{ matrix.target }}.*"
           archive: false
 
       - uses: softprops/action-gh-release@v2
@@ -98,8 +149,9 @@ jobs:
           draft: true
           prerelease: false # can be edited in the Web UI
           files: |
-            docs.json
-            docs-assets.zip
+            docit-${{ matrix.target }}.*
+            ${{ matrix.run-docit && 'docs/dist/docs.pdf' || '' }}
+            ${{ matrix.run-docit && 'docs/dist/docs-website.zip' || '' }}
       - name: Report the release
         if: ${{ env.INPUT_RELEASE == 'true' }}
         run: |
