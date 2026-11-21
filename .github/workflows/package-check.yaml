@@ -99,9 +99,7 @@ jobs:
       - name: Vendor openssl for musl
         if: ${{ endsWith(matrix.target, '-musl') }}
         run: |
-            cat <<EOF >> Cargo.toml
-            openssl = { version = "^0.10", features = ["vendored"] }
-            EOF
+            sed -i '/^\[dev-dependencies\]/i openssl = { version = "^0.10", features = ["vendored"] }' Cargo.toml
 
       - uses: actions/cache@v5
         with:
